@@ -84,6 +84,25 @@ def test_directory_instead_of_cookie_file_raises_config_error(monkeypatch, tmp_p
         load_runtime_config(config_dir=tmp_path)
 
 
+def test_cookie_path_lstat_error_raises_config_error(monkeypatch, tmp_path):
+    from twikit_mcp.config import ConfigError, load_runtime_config
+
+    monkeypatch.delenv("TWIKIT_MCP_AUTH_TOKEN", raising=False)
+    monkeypatch.delenv("TWIKIT_MCP_CT0", raising=False)
+
+    original_lstat = Path.lstat
+
+    def raise_permission_error(self):
+        if self == tmp_path / "cookies.json":
+            raise PermissionError("denied")
+        return original_lstat(self)
+
+    monkeypatch.setattr(Path, "lstat", raise_permission_error)
+
+    with pytest.raises(ConfigError):
+        load_runtime_config(config_dir=tmp_path)
+
+
 def test_invalid_json_syntax_raises_config_error(monkeypatch, tmp_path):
     from twikit_mcp.config import ConfigError, load_runtime_config
 
@@ -134,6 +153,29 @@ def test_cookie_symlink_exists_check_error_raises_config_error(monkeypatch, tmp_
         return original_exists(self)
 
     monkeypatch.setattr(Path, "exists", raise_permission_error)
+
+    with pytest.raises(ConfigError):
+        load_runtime_config(config_dir=tmp_path)
+
+
+def test_cookie_path_is_file_error_raises_config_error(monkeypatch, tmp_path):
+    from twikit_mcp.config import ConfigError, load_runtime_config
+
+    monkeypatch.delenv("TWIKIT_MCP_AUTH_TOKEN", raising=False)
+    monkeypatch.delenv("TWIKIT_MCP_CT0", raising=False)
+    (tmp_path / "cookies.json").write_text(
+        json.dumps({"auth_token": "file-token-123", "ct0": "file-ct0-1234"}),
+        encoding="utf-8",
+    )
+
+    original_is_file = Path.is_file
+
+    def raise_permission_error(self):
+        if self == tmp_path / "cookies.json":
+            raise PermissionError("denied")
+        return original_is_file(self)
+
+    monkeypatch.setattr(Path, "is_file", raise_permission_error)
 
     with pytest.raises(ConfigError):
         load_runtime_config(config_dir=tmp_path)
