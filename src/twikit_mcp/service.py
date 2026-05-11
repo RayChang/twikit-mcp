@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any
 
+from twikit_mcp.cache import TTLCache
 from twikit_mcp.errors import (
     ErrorPayload,
     auth_expired_error,
@@ -14,7 +15,66 @@ from twikit_mcp.errors import (
     rate_limited_error,
     upstream_changed_error,
 )
-from twikit_mcp.models import Author, FullPostPayload, MediaItem, SearchPostSummary
+from twikit_mcp.models import Author, FullPostPayload, MediaItem, SearchPostsResponse, SearchPostSummary
+from twikit_mcp.query import QueryError, compose_search_query, normalize_sort
+
+
+DEFAULT_LIMIT = 20
+MAX_LIMIT = 50
+
+
+class SearchService:
+    """Search posts through a twikit-compatible client."""
+
+    def __init__(
+        self,
+        *,
+        client: Any,
+        cursor_cache: TTLCache[Any] | None = None,
+    ) -> None:
+        self._client = client
+        self._cursor_cache = cursor_cache or TTLCache(default_ttl_seconds=120)
+
+    async def search_posts(
+        self,
+        *,
+        query: str,
+        author: str | None = None,
+        sort: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        lang: str | None = None,
+        limit: int = DEFAULT_LIMIT,
+        cursor: str | None = None,
+    ) -> SearchPostsResponse:
+        if limit < 1 or limit > MAX_LIMIT:
+            raise QueryError(f"limit must be between 1 and {MAX_LIMIT}")
+
+        if cursor is None:
+            search_query = compose_search_query(
+                query=query,
+                author=author,
+                since=since,
+                until=until,
+                lang=lang,
+            )
+            result = await self._client.search_tweet(search_query, normalize_sort(sort))
+        else:
+            previous_result = self._cursor_cache.get(cursor)
+            if previous_result is None:
+                raise QueryError("cursor is unknown or expired")
+            result = await previous_result.next()
+
+        return self._map_search_result(result=result, limit=limit)
+
+    def _map_search_result(self, *, result: Any, limit: int) -> SearchPostsResponse:
+        items = [map_tweet_to_search_summary(tweet) for tweet in list(result)[:limit]]
+        next_cursor = _optional_string(
+            _get_optional(result, "next_cursor") or _get_optional(result, "cursor")
+        )
+        if next_cursor:
+            self._cursor_cache.set(next_cursor, result)
+        return SearchPostsResponse(items=items, next_cursor=next_cursor)
 
 
 def map_tweet_to_search_summary(tweet: Any) -> SearchPostSummary:
