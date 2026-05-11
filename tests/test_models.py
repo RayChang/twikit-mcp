@@ -25,13 +25,15 @@ def test_search_post_summary_uses_iso_utc_timestamp():
     assert item.created_at.endswith("Z")
 
 
-def test_pyproject_declares_pydantic_runtime_dependency():
+def test_pyproject_declares_runtime_dependencies():
     with open("pyproject.toml", "rb") as pyproject_file:
         pyproject = tomllib.load(pyproject_file)
 
     dependencies = pyproject["project"]["dependencies"]
 
     assert any(dependency.startswith("pydantic") for dependency in dependencies)
+    assert any(dependency.startswith("mcp") for dependency in dependencies)
+    assert any(dependency.startswith("twikit") for dependency in dependencies)
 
 
 def test_search_post_summary_normalizes_offset_to_utc():

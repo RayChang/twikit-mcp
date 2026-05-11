@@ -46,6 +46,7 @@ class SearchService:
     ) -> None:
         self._client = client
         self._cursor_cache = cursor_cache or TTLCache(default_ttl_seconds=120)
+        self._client_activated = False
 
     async def search_posts(
         self,
@@ -63,6 +64,8 @@ class SearchService:
             raise QueryError(f"limit must be between 1 and {MAX_LIMIT}")
 
         if cursor is None:
+            await _activate_client_if_supported(self._client, activated=self._client_activated)
+            self._client_activated = True
             search_query = compose_search_query(
                 query=query,
                 author=author,
@@ -94,6 +97,7 @@ class PostService:
 
     def __init__(self, *, client: Any) -> None:
         self._client = client
+        self._client_activated = False
 
     async def get_post(self, *, url: str | None = None, id: str | None = None) -> FullPostPayload:
         if (url is None and id is None) or (url is not None and id is not None):
@@ -104,6 +108,8 @@ class PostService:
         except NormalizationError as exc:
             raise QueryError(str(exc)) from exc
 
+        await _activate_client_if_supported(self._client, activated=self._client_activated)
+        self._client_activated = True
         tweet = await self._client.get_tweet_by_id(post_id)
         return map_tweet_to_full_post(tweet)
 
@@ -121,6 +127,7 @@ class BookmarkService:
         self._client = client
         self._authenticated = authenticated
         self._cursor_cache = cursor_cache or TTLCache(default_ttl_seconds=120)
+        self._client_activated = False
 
     async def get_bookmarks(
         self,
@@ -140,6 +147,8 @@ class BookmarkService:
         filters = _BookmarkFilters(query=query, author=author, since=since, until=until, lang=lang)
         max_pages = MAX_BOOKMARK_SCAN_PAGES if filters.enabled else 1
         if cursor is None:
+            await _activate_client_if_supported(self._client, activated=self._client_activated)
+            self._client_activated = True
             result = await self._client.get_bookmarks(count=limit)
         else:
             previous_result = self._cursor_cache.get(cursor)
@@ -345,6 +354,17 @@ def _parse_date_boundary(name: str, value: str) -> date:
         return date.fromisoformat(candidate)
     except ValueError as exc:
         raise QueryError(f"{name} must be YYYY-MM-DD or ISO 8601") from exc
+
+
+async def _activate_client_if_supported(client: Any, *, activated: bool) -> None:
+    if activated:
+        return
+    activate = getattr(client, "activate", None)
+    if activate is None:
+        return
+    maybe_awaitable = activate()
+    if hasattr(maybe_awaitable, "__await__"):
+        await maybe_awaitable
 
 
 def _exception_details(exc: Exception) -> dict[str, str]:

@@ -44,6 +44,15 @@ class FakeSearchClient:
         return self.result
 
 
+class FakeActivatingSearchClient(FakeSearchClient):
+    def __init__(self):
+        super().__init__()
+        self.activate_calls = 0
+
+    async def activate(self):
+        self.activate_calls += 1
+
+
 def test_x_search_posts_returns_summary_listing():
     from twikit_mcp.service import SearchService
 
@@ -55,6 +64,18 @@ def test_x_search_posts_returns_summary_listing():
     assert client.calls == [("AI from:alice", "Latest")]
     assert result.items[0].id == "1"
     assert result.next_cursor == "cursor-1"
+
+
+def test_x_search_posts_activates_guest_client_once():
+    from twikit_mcp.service import SearchService
+
+    client = FakeActivatingSearchClient()
+    service = SearchService(client=client)
+
+    asyncio.run(service.search_posts(query="AI"))
+    asyncio.run(service.search_posts(query="AI"))
+
+    assert client.activate_calls == 1
 
 
 def test_x_search_posts_uses_cursor_to_fetch_next_page():

@@ -1,7 +1,13 @@
 """MCP server construction."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Callable
+
+from twikit_mcp.client_factory import TwikitClientFactory
+from twikit_mcp.config import load_runtime_config
+from twikit_mcp.service import BookmarkService, PostService, SearchService
 
 
 @dataclass(slots=True)
@@ -26,7 +32,7 @@ class MCPStub:
 
 def build_mcp(*, mcp_factory=None, search_service=None, post_service=None, bookmark_service=None):
     """Build and return the MCP server."""
-    factory = mcp_factory or MCPStub
+    factory = mcp_factory or _default_mcp_factory
     mcp = factory("twikit-mcp")
 
     if search_service is not None:
@@ -85,3 +91,23 @@ def build_mcp(*, mcp_factory=None, search_service=None, post_service=None, bookm
             return result.model_dump()
 
     return mcp
+
+
+def main() -> None:
+    """Console script entrypoint for stdio MCP hosts."""
+    config = load_runtime_config()
+    client = TwikitClientFactory().create_client(config)
+    mcp = build_mcp(
+        search_service=SearchService(client=client),
+        post_service=PostService(client=client),
+        bookmark_service=BookmarkService(client=client, authenticated=config.mode == "cookie-auth"),
+    )
+    mcp.run()
+
+
+def _default_mcp_factory(name: str):
+    try:
+        from mcp.server.fastmcp import FastMCP
+    except ImportError as exc:
+        raise RuntimeError("mcp Python SDK is required to run twikit-mcp") from exc
+    return FastMCP(name)
