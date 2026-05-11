@@ -24,7 +24,7 @@ class MCPStub:
         return decorator
 
 
-def build_mcp(*, mcp_factory=None, search_service=None):
+def build_mcp(*, mcp_factory=None, search_service=None, post_service=None):
     """Build and return the MCP server."""
     factory = mcp_factory or MCPStub
     mcp = factory("twikit-mcp")
@@ -52,6 +52,13 @@ def build_mcp(*, mcp_factory=None, search_service=None):
                 limit=limit,
                 cursor=cursor,
             )
+            return result.model_dump()
+
+    if post_service is not None:
+
+        @mcp.tool()
+        async def x_get_post(url: str | None = None, id: str | None = None):
+            result = await post_service.get_post(url=url, id=id)
             return result.model_dump()
 
     return mcp

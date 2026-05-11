@@ -16,6 +16,7 @@ from twikit_mcp.errors import (
     upstream_changed_error,
 )
 from twikit_mcp.models import Author, FullPostPayload, MediaItem, SearchPostsResponse, SearchPostSummary
+from twikit_mcp.normalize import NormalizationError, extract_post_id
 from twikit_mcp.query import QueryError, compose_search_query, normalize_sort
 
 
@@ -75,6 +76,25 @@ class SearchService:
         if next_cursor:
             self._cursor_cache.set(next_cursor, result)
         return SearchPostsResponse(items=items, next_cursor=next_cursor)
+
+
+class PostService:
+    """Fetch and map individual posts through a twikit-compatible client."""
+
+    def __init__(self, *, client: Any) -> None:
+        self._client = client
+
+    async def get_post(self, *, url: str | None = None, id: str | None = None) -> FullPostPayload:
+        if (url is None and id is None) or (url is not None and id is not None):
+            raise QueryError("provide exactly one of url or id")
+
+        try:
+            post_id = extract_post_id(id if id is not None else url or "")
+        except NormalizationError as exc:
+            raise QueryError(str(exc)) from exc
+
+        tweet = await self._client.get_tweet_by_id(post_id)
+        return map_tweet_to_full_post(tweet)
 
 
 def map_tweet_to_search_summary(tweet: Any) -> SearchPostSummary:
