@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import date, datetime
 from typing import Any
 
 from twikit_mcp.cache import TTLCache
 from twikit_mcp.errors import (
+    AuthRequiredError,
     ErrorPayload,
     auth_expired_error,
     internal_error,
@@ -15,13 +17,22 @@ from twikit_mcp.errors import (
     rate_limited_error,
     upstream_changed_error,
 )
-from twikit_mcp.models import Author, FullPostPayload, MediaItem, SearchPostsResponse, SearchPostSummary
-from twikit_mcp.normalize import NormalizationError, extract_post_id
+from twikit_mcp.models import (
+    Author,
+    BookmarkListItem,
+    BookmarkListResponse,
+    FullPostPayload,
+    MediaItem,
+    SearchPostsResponse,
+    SearchPostSummary,
+)
+from twikit_mcp.normalize import NormalizationError, extract_post_id, normalize_author
 from twikit_mcp.query import QueryError, compose_search_query, normalize_sort
 
 
 DEFAULT_LIMIT = 20
 MAX_LIMIT = 50
+MAX_BOOKMARK_SCAN_PAGES = 5
 
 
 class SearchService:
@@ -95,6 +106,113 @@ class PostService:
 
         tweet = await self._client.get_tweet_by_id(post_id)
         return map_tweet_to_full_post(tweet)
+
+
+class BookmarkService:
+    """Fetch authenticated bookmarks and apply bounded local filters."""
+
+    def __init__(
+        self,
+        *,
+        client: Any,
+        authenticated: bool,
+        cursor_cache: TTLCache[Any] | None = None,
+    ) -> None:
+        self._client = client
+        self._authenticated = authenticated
+        self._cursor_cache = cursor_cache or TTLCache(default_ttl_seconds=120)
+
+    async def get_bookmarks(
+        self,
+        *,
+        query: str | None = None,
+        author: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        lang: str | None = None,
+        limit: int = DEFAULT_LIMIT,
+        cursor: str | None = None,
+    ) -> BookmarkListResponse:
+        if not self._authenticated:
+            raise AuthRequiredError("Bookmarks require cookie-auth mode")
+        if limit < 1 or limit > MAX_LIMIT:
+            raise QueryError(f"limit must be between 1 and {MAX_LIMIT}")
+        filters = _BookmarkFilters(query=query, author=author, since=since, until=until, lang=lang)
+        max_pages = MAX_BOOKMARK_SCAN_PAGES if filters.enabled else 1
+        if cursor is None:
+            result = await self._client.get_bookmarks(count=limit)
+        else:
+            previous_result = self._cursor_cache.get(cursor)
+            if previous_result is None:
+                raise QueryError("cursor is unknown or expired")
+            result = await previous_result.next()
+        items: list[BookmarkListItem] = []
+        scanned_pages = 0
+        next_cursor: str | None = None
+
+        while result is not None and scanned_pages < max_pages and len(items) < limit:
+            scanned_pages += 1
+            next_cursor = _optional_string(
+                _get_optional(result, "next_cursor") or _get_optional(result, "cursor")
+            )
+            if next_cursor:
+                self._cursor_cache.set(next_cursor, result)
+            for tweet in result:
+                summary = map_tweet_to_search_summary(tweet)
+                item = BookmarkListItem(**summary.model_dump())
+                if filters.matches(item):
+                    items.append(item)
+                    if len(items) >= limit:
+                        break
+            if len(items) >= limit or scanned_pages >= max_pages or not next_cursor:
+                break
+            result = await result.next()
+
+        partial = filters.enabled and bool(next_cursor) and scanned_pages >= max_pages
+        return BookmarkListResponse(
+            items=items,
+            next_cursor=next_cursor,
+            partial=partial,
+            scanned_pages=scanned_pages,
+        )
+
+
+class _BookmarkFilters:
+    def __init__(
+        self,
+        *,
+        query: str | None,
+        author: str | None,
+        since: str | None,
+        until: str | None,
+        lang: str | None,
+    ) -> None:
+        self.query = query.strip().lower() if query else None
+        try:
+            self.author = normalize_author(author) if author else None
+        except NormalizationError as exc:
+            raise QueryError(str(exc)) from exc
+        self.since = _parse_date_boundary("since", since) if since else None
+        self.until = _parse_date_boundary("until", until) if until else None
+        if self.since is not None and self.until is not None and self.since > self.until:
+            raise QueryError("since must be earlier than or equal to until")
+        self.lang = lang.strip().lower() if lang else None
+        self.enabled = any(
+            value is not None
+            for value in (self.query, self.author, self.since, self.until, self.lang)
+        )
+
+    def matches(self, item: BookmarkListItem) -> bool:
+        created_date = _parse_date_boundary("created_at", item.created_at)
+        return all(
+            (
+                self.query is None or self.query in item.text.lower(),
+                self.author is None or self.author == item.author.handle,
+                self.since is None or created_date >= self.since,
+                self.until is None or created_date <= self.until,
+                self.lang is None or self.lang == item.lang.lower(),
+            )
+        )
 
 
 def map_tweet_to_search_summary(tweet: Any) -> SearchPostSummary:
@@ -215,6 +333,18 @@ def _optional_string(value: Any) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _parse_date_boundary(name: str, value: str) -> date:
+    candidate = value.strip()
+    if candidate.endswith("Z"):
+        candidate = f"{candidate[:-1]}+00:00"
+    try:
+        if "T" in candidate:
+            return datetime.fromisoformat(candidate).date()
+        return date.fromisoformat(candidate)
+    except ValueError as exc:
+        raise QueryError(f"{name} must be YYYY-MM-DD or ISO 8601") from exc
 
 
 def _exception_details(exc: Exception) -> dict[str, str]:

@@ -33,6 +33,10 @@ class ErrorPayload(BaseModel):
     details: dict[str, Any] | None = None
 
 
+class AuthRequiredError(PermissionError):
+    """Raised when an authenticated-only tool is called in guest mode."""
+
+
 def _build_error(
     code: ErrorCode,
     message: str,

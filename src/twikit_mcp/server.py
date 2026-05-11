@@ -24,7 +24,7 @@ class MCPStub:
         return decorator
 
 
-def build_mcp(*, mcp_factory=None, search_service=None, post_service=None):
+def build_mcp(*, mcp_factory=None, search_service=None, post_service=None, bookmark_service=None):
     """Build and return the MCP server."""
     factory = mcp_factory or MCPStub
     mcp = factory("twikit-mcp")
@@ -59,6 +59,29 @@ def build_mcp(*, mcp_factory=None, search_service=None, post_service=None):
         @mcp.tool()
         async def x_get_post(url: str | None = None, id: str | None = None):
             result = await post_service.get_post(url=url, id=id)
+            return result.model_dump()
+
+    if bookmark_service is not None:
+
+        @mcp.tool()
+        async def x_get_bookmarks(
+            query: str | None = None,
+            author: str | None = None,
+            since: str | None = None,
+            until: str | None = None,
+            lang: str | None = None,
+            limit: int = 20,
+            cursor: str | None = None,
+        ):
+            result = await bookmark_service.get_bookmarks(
+                query=query,
+                author=author,
+                since=since,
+                until=until,
+                lang=lang,
+                limit=limit,
+                cursor=cursor,
+            )
             return result.model_dump()
 
     return mcp

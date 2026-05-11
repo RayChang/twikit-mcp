@@ -115,3 +115,5 @@ class SearchPostsResponse(ListResponse[SearchPostSummary]):
 
 class BookmarkListResponse(ListResponse[BookmarkListItem]):
     """Response schema for bookmark listings."""
+
+    scanned_pages: int = Field(default=0, ge=0)
