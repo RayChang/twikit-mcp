@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+import tomllib
 
 
 def test_search_post_summary_uses_iso_utc_timestamp():
@@ -22,6 +23,15 @@ def test_search_post_summary_uses_iso_utc_timestamp():
     )
 
     assert item.created_at.endswith("Z")
+
+
+def test_pyproject_declares_pydantic_runtime_dependency():
+    with open("pyproject.toml", "rb") as pyproject_file:
+        pyproject = tomllib.load(pyproject_file)
+
+    dependencies = pyproject["project"]["dependencies"]
+
+    assert any(dependency.startswith("pydantic") for dependency in dependencies)
 
 
 def test_search_post_summary_normalizes_offset_to_utc():
