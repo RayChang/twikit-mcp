@@ -80,17 +80,14 @@ def _load_cookies_from_env(environ: Mapping[str, str]) -> AuthCookies | None:
 
 
 def _load_cookies_from_file(cookies_path: Path) -> AuthCookies | None:
-    try:
-        path_status = cookies_path.lstat()
-    except FileNotFoundError:
+    path_status = _inspect_cookie_path(cookies_path)
+    if path_status is None:
         return None
-    except OSError as exc:
-        raise ConfigError(f"Unable to inspect {cookies_path}") from exc
 
-    if stat.S_ISLNK(path_status.st_mode) and not cookies_path.exists():
+    if stat.S_ISLNK(path_status.st_mode) and not _path_exists(cookies_path):
         raise ConfigError(f"{cookies_path} is not a usable regular file")
 
-    if not cookies_path.is_file():
+    if not _path_is_file(cookies_path):
         raise ConfigError(f"{cookies_path} is not a usable regular file")
 
     try:
@@ -116,3 +113,26 @@ def _validate_cookies(auth_token: object, ct0: object) -> AuthCookies:
         return validate_auth_cookies(auth_token=auth_token, ct0=ct0)
     except ValueError as exc:
         raise ConfigError(str(exc)) from exc
+
+
+def _inspect_cookie_path(cookies_path: Path) -> os.stat_result | None:
+    try:
+        return cookies_path.lstat()
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise ConfigError(f"Unable to inspect {cookies_path}") from exc
+
+
+def _path_exists(cookies_path: Path) -> bool:
+    try:
+        return cookies_path.exists()
+    except OSError as exc:
+        raise ConfigError(f"Unable to inspect {cookies_path}") from exc
+
+
+def _path_is_file(cookies_path: Path) -> bool:
+    try:
+        return cookies_path.is_file()
+    except OSError as exc:
+        raise ConfigError(f"Unable to inspect {cookies_path}") from exc

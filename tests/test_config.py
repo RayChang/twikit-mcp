@@ -117,6 +117,28 @@ def test_broken_cookie_symlink_raises_config_error(monkeypatch, tmp_path):
         load_runtime_config(config_dir=tmp_path)
 
 
+def test_cookie_symlink_exists_check_error_raises_config_error(monkeypatch, tmp_path):
+    from twikit_mcp.config import ConfigError, load_runtime_config
+
+    monkeypatch.delenv("TWIKIT_MCP_AUTH_TOKEN", raising=False)
+    monkeypatch.delenv("TWIKIT_MCP_CT0", raising=False)
+    target = tmp_path / "target.json"
+    target.write_text(json.dumps({"auth_token": "file-token-123", "ct0": "file-ct0-1234"}), encoding="utf-8")
+    (tmp_path / "cookies.json").symlink_to(target)
+
+    original_exists = Path.exists
+
+    def raise_permission_error(self):
+        if self == tmp_path / "cookies.json":
+            raise PermissionError("denied")
+        return original_exists(self)
+
+    monkeypatch.setattr(Path, "exists", raise_permission_error)
+
+    with pytest.raises(ConfigError):
+        load_runtime_config(config_dir=tmp_path)
+
+
 def test_cookie_read_permission_error_raises_config_error(monkeypatch, tmp_path):
     from twikit_mcp.config import ConfigError, load_runtime_config
 
