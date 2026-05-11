@@ -7,6 +7,7 @@ import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+import stat
 from typing import Literal
 
 from twikit_mcp.auth import AuthCookies, validate_auth_cookies
@@ -79,13 +80,27 @@ def _load_cookies_from_env(environ: Mapping[str, str]) -> AuthCookies | None:
 
 
 def _load_cookies_from_file(cookies_path: Path) -> AuthCookies | None:
-    if not cookies_path.is_file():
+    try:
+        path_status = cookies_path.lstat()
+    except FileNotFoundError:
         return None
+    except OSError as exc:
+        raise ConfigError(f"Unable to inspect {cookies_path}") from exc
+
+    if stat.S_ISLNK(path_status.st_mode) and not cookies_path.exists():
+        raise ConfigError(f"{cookies_path} is not a usable regular file")
+
+    if not cookies_path.is_file():
+        raise ConfigError(f"{cookies_path} is not a usable regular file")
 
     try:
         payload = json.loads(cookies_path.read_text(encoding="utf-8"))
+    except UnicodeDecodeError as exc:
+        raise ConfigError(f"Unable to decode {cookies_path} as UTF-8") from exc
     except json.JSONDecodeError as exc:
         raise ConfigError(f"Invalid JSON in {cookies_path}") from exc
+    except OSError as exc:
+        raise ConfigError(f"Unable to read {cookies_path}") from exc
 
     if not isinstance(payload, dict):
         raise ConfigError(f"{cookies_path} must contain a JSON object")
