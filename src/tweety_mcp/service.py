@@ -22,6 +22,8 @@ from tweety_mcp.models import (
     Author,
     BookmarkListItem,
     BookmarkListResponse,
+    CommentItem,
+    CommentListResponse,
     FullPostPayload,
     MediaItem,
     SearchPostsResponse,
@@ -138,6 +140,59 @@ class ArticleService:
         if article is None:
             raise QueryError("this post does not contain a long-form article")
         return map_article_to_payload(article=article, tweet=tweet)
+
+
+class CommentService:
+    """Fetch top-level replies (comments) for a post."""
+
+    def __init__(
+        self,
+        *,
+        client: Any,
+        cursor_cache: TTLCache[Any] | None = None,
+    ) -> None:
+        self._client = client
+        self._cursor_cache = cursor_cache or TTLCache(default_ttl_seconds=120)
+        self._client_activated = False
+
+    async def get_comments(
+        self,
+        *,
+        url: str | None = None,
+        id: str | None = None,
+        limit: int = DEFAULT_LIMIT,
+        cursor: str | None = None,
+    ) -> CommentListResponse:
+        if (url is None and id is None) or (url is not None and id is not None):
+            raise QueryError("provide exactly one of url or id")
+        if limit < 1 or limit > MAX_LIMIT:
+            raise QueryError(f"limit must be between 1 and {MAX_LIMIT}")
+
+        try:
+            post_id = extract_post_id(id if id is not None else url or "")
+        except NormalizationError as exc:
+            raise QueryError(str(exc)) from exc
+
+        await _activate_client_if_supported(self._client, activated=self._client_activated)
+        self._client_activated = True
+
+        resume_cursor: str | None = None
+        if cursor is not None:
+            resume_cursor = self._cursor_cache.get(cursor)
+            if resume_cursor is None:
+                raise QueryError("cursor is unknown or expired")
+
+        result = await self._client.get_tweet_comments(
+            post_id, count=limit, cursor=resume_cursor
+        )
+        items = [
+            CommentItem(**map_tweet_to_search_summary(tweet).model_dump())
+            for tweet in list(result)[:limit]
+        ]
+        next_cursor = _optional_string(_get_optional(result, "next_cursor"))
+        if next_cursor:
+            self._cursor_cache.set(next_cursor, next_cursor)
+        return CommentListResponse(items=items, next_cursor=next_cursor)
 
 
 class BookmarkService:

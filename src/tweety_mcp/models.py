@@ -130,3 +130,11 @@ class BookmarkListResponse(ListResponse[BookmarkListItem]):
     """Response schema for bookmark listings."""
 
     scanned_pages: int = Field(default=0, ge=0)
+
+
+class CommentItem(SearchPostSummary):
+    """A single top-level reply to a post."""
+
+
+class CommentListResponse(ListResponse[CommentItem]):
+    """Response schema for tweet comment listings."""

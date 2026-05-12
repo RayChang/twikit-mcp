@@ -6,6 +6,8 @@ This server is designed for local agent workflows. It exposes read-only tools ov
 
 - `x_search_posts`
 - `x_get_post`
+- `x_get_comments`
+- `x_get_article`
 - `x_get_bookmarks`
 
 It does not post, like, retweet, follow, send DMs, or store X passwords.
@@ -275,6 +277,31 @@ Read and analyze this X post: https://x.com/user/status/1234567890
 
 ```text
 Fetch post ID 1234567890 and describe what's in the image.
+```
+
+### `x_get_comments`
+
+Fetch top-level replies (direct comments) to a post. Nested replies are dropped — to drill into a sub-thread, call this tool again with that reply's `id`. No images are attached to keep response size predictable.
+
+Inputs:
+
+- `url`: X/Twitter post URL
+- `id`: X post ID
+- `limit`: optional, default `20`, max `50`
+- `cursor`: optional cursor returned by a previous call
+
+Provide exactly one of `url` or `id`.
+
+Output: JSON with `items` (an array shaped like `SearchPostSummary`) and an optional `next_cursor` for pagination. The author's own self-thread continuations are included alongside other users' replies, as X returns them in the same reply timeline.
+
+Example prompts:
+
+```text
+Summarise the top 10 comments under https://x.com/karpathy/status/1234567890.
+```
+
+```text
+Show me the most-liked replies to post ID 1234567890.
 ```
 
 ### `x_get_article`

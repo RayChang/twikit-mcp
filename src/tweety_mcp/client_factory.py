@@ -121,6 +121,27 @@ class TweetyClient:
         result = await self._app.get_bookmarks(pages=pages, cursor=cursor)
         return _BookmarksPage(app=self._app, result=result, pages=pages)
 
+    async def get_tweet_comments(
+        self,
+        post_id: str,
+        count: int = TWEETY_PAGE_SIZE,
+        cursor: str | None = None,
+    ) -> Any:
+        """Fetch top-level reply tweets for a post.
+
+        Returns an iterable of tweet objects. tweety yields
+        ``ConversationThread`` instances; we pluck the first tweet of
+        each thread (the direct reply) and drop deeper nesting.
+        """
+        await self.activate()
+        pages = max(1, math.ceil(count / TWEETY_PAGE_SIZE))
+        threads = await self._app.get_tweet_comments(
+            tweet_id=post_id,
+            pages=pages,
+            cursor=cursor,
+        )
+        return _CommentsPage(threads=threads)
+
 
 class _SearchPage:
     """Adapter exposing twikit's iterate-and-``next()`` shape over tweety."""
@@ -152,6 +173,31 @@ class _SearchPage:
         return _SearchPage(
             app=self._app, result=result, pages=self._pages, query=self._query, filter_=self._filter
         )
+
+
+class _CommentsPage:
+    """Adapter flattening tweety ``ConversationThread`` results to direct replies."""
+
+    def __init__(self, *, threads: Any) -> None:
+        self._threads = threads
+        self.next_cursor: str | None = _get_attr_or_key(threads, "cursor")
+
+    def __iter__(self):
+        return iter(_top_level_replies(self._threads))
+
+
+def _top_level_replies(threads: Any) -> list[Any]:
+    """Flatten ConversationThread list to one top-level reply per thread."""
+    if threads is None:
+        return []
+    flattened: list[Any] = []
+    for thread in threads:
+        tweets = _get_attr_or_key(thread, "tweets")
+        if tweets:
+            flattened.append(tweets[0])
+        elif _get_attr_or_key(thread, "id") is not None:
+            flattened.append(thread)
+    return flattened
 
 
 class _BookmarksPage:

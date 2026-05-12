@@ -8,7 +8,13 @@ from typing import Any, Callable
 from tweety_mcp.client_factory import TwikitClientFactory
 from tweety_mcp.config import load_runtime_config
 from tweety_mcp.media_fetcher import fetch_images
-from tweety_mcp.service import ArticleService, BookmarkService, PostService, SearchService
+from tweety_mcp.service import (
+    ArticleService,
+    BookmarkService,
+    CommentService,
+    PostService,
+    SearchService,
+)
 
 
 _IMAGE_MEDIA_TYPES = {"photo", "image", "animated_gif", "video"}
@@ -49,6 +55,7 @@ def build_mcp(
     post_service=None,
     bookmark_service=None,
     article_service=None,
+    comment_service=None,
 ):
     """Build and return the MCP server."""
     factory = mcp_factory or _default_mcp_factory
@@ -87,6 +94,20 @@ def build_mcp(
             data = result.model_dump()
             images = await fetch_images(_media_image_urls(data.get("media", [])))
             return [data, *images]
+
+    if comment_service is not None:
+
+        @mcp.tool()
+        async def x_get_comments(
+            url: str | None = None,
+            id: str | None = None,
+            limit: int = 20,
+            cursor: str | None = None,
+        ):
+            result = await comment_service.get_comments(
+                url=url, id=id, limit=limit, cursor=cursor
+            )
+            return result.model_dump()
 
     if article_service is not None:
 
@@ -138,6 +159,7 @@ def main() -> None:
         post_service=PostService(client=client),
         bookmark_service=BookmarkService(client=client, authenticated=config.mode == "cookie-auth"),
         article_service=ArticleService(client=client),
+        comment_service=CommentService(client=client),
     )
     mcp.run()
 
