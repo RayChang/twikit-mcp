@@ -18,6 +18,7 @@ from tweety_mcp.errors import (
     upstream_changed_error,
 )
 from tweety_mcp.models import (
+    ArticlePayload,
     Author,
     BookmarkListItem,
     BookmarkListResponse,
@@ -112,6 +113,31 @@ class PostService:
         self._client_activated = True
         tweet = await self._client.get_tweet_by_id(post_id)
         return map_tweet_to_full_post(tweet)
+
+
+class ArticleService:
+    """Fetch X long-form articles attached to a tweet."""
+
+    def __init__(self, *, client: Any) -> None:
+        self._client = client
+        self._client_activated = False
+
+    async def get_article(self, *, url: str | None = None, id: str | None = None) -> ArticlePayload:
+        if (url is None and id is None) or (url is not None and id is not None):
+            raise QueryError("provide exactly one of url or id")
+
+        try:
+            post_id = extract_post_id(id if id is not None else url or "")
+        except NormalizationError as exc:
+            raise QueryError(str(exc)) from exc
+
+        await _activate_client_if_supported(self._client, activated=self._client_activated)
+        self._client_activated = True
+        tweet = await self._client.get_tweet_by_id(post_id)
+        article = _get_optional(tweet, "article")
+        if article is None:
+            raise QueryError("this post does not contain a long-form article")
+        return map_article_to_payload(article=article, tweet=tweet)
 
 
 class BookmarkService:
@@ -283,6 +309,60 @@ def map_tweet_to_full_post(tweet: Any) -> FullPostPayload:
     )
 
 
+def map_article_to_payload(*, article: Any, tweet: Any) -> ArticlePayload:
+    """Map a tweety ``Article`` plus its owning tweet into an ``ArticlePayload``."""
+    author = _map_author(_get_required_one_of(tweet, ("user", "author")))
+    article_id = str(_get_required(article, "id"))
+    title = str(_get_optional(article, "title") or "")
+    body_text = str(_get_optional_one_of(article, ("text", "plain_text"), ""))
+    cover_media = _map_article_media(_get_optional(article, "cover_media"))
+    article_media = [
+        item
+        for item in (
+            _map_article_media(raw)
+            for raw in (_get_optional(article, "media", []) or [])
+        )
+        if item is not None
+    ]
+    return ArticlePayload(
+        id=article_id,
+        url=f"https://x.com/i/article/{article_id}",
+        title=title,
+        preview_text=_optional_string(_get_optional(article, "preview_text")),
+        text=body_text,
+        created_at=_get_required_one_of(tweet, ("created_at", "created_on", "date")),
+        author=author,
+        cover_media=cover_media,
+        media=article_media,
+    )
+
+
+_ARTICLE_MEDIA_TYPE_BY_CLASS = {
+    "ApiImage": "photo",
+    "ApiVideo": "video",
+    "ApiGif": "animated_gif",
+}
+
+
+def _map_article_media(item: Any) -> MediaItem | None:
+    """Convert a tweety article media object (ApiImage/ApiVideo/ApiGif) to MediaItem."""
+    if item is None:
+        return None
+    preview = _get_optional(item, "preview_image")
+    source = preview if preview is not None else item
+    url = _get_optional_one_of(source, ("direct_url", "media_url_https", "url"), "")
+    if not url:
+        return None
+    media_type = _ARTICLE_MEDIA_TYPE_BY_CLASS.get(type(item).__name__) or str(
+        _get_optional(item, "type", "")
+    )
+    return MediaItem(
+        type=media_type,
+        url=str(url),
+        alt_text=_optional_string(_get_optional(item, "alt_text")),
+    )
+
+
 def map_exception_to_error(exc: Exception) -> ErrorPayload:
     """Map upstream/service exceptions into stable error payloads."""
     message = str(exc)
@@ -316,10 +396,10 @@ def _map_media_item(media: Any) -> MediaItem:
     return MediaItem(
         type=str(_get_optional(media, "type", "")),
         url=str(
-            _get_optional(media, "url")
-            or _get_optional(media, "media_url")
-            or _get_optional(media, "media_url_https")
+            _get_optional(media, "media_url_https")
             or _get_optional(media, "direct_url")
+            or _get_optional(media, "url")
+            or _get_optional(media, "media_url")
             or ""
         ),
         alt_text=_optional_string(_get_optional(media, "alt_text")),

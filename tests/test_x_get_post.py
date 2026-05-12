@@ -95,5 +95,7 @@ def test_registered_x_get_post_tool_returns_json_dict():
 
     result = asyncio.run(mcp.tools["x_get_post"](id="123"))
 
-    assert result["id"] == "123"
-    assert result["view_count"] == 100
+    # Tool returns [payload_dict, *images]; the first item is the JSON payload.
+    payload = result[0]
+    assert payload["id"] == "123"
+    assert payload["view_count"] == 100

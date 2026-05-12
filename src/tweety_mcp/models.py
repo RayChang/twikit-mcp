@@ -98,6 +98,19 @@ class FullPostPayload(SearchPostSummary):
     retweeted_post: SearchPostSummary | None = None
 
 
+class ArticlePayload(TimestampedModel):
+    """LLM-friendly long-form article payload."""
+
+    id: str
+    url: str
+    title: str
+    preview_text: str | None = None
+    text: str
+    author: Author
+    cover_media: MediaItem | None = None
+    media: list[MediaItem] = Field(default_factory=list)
+
+
 T = TypeVar("T")
 
 

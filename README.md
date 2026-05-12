@@ -256,7 +256,7 @@ Find recent posts about #WWDC from @apple.
 
 ### `x_get_post`
 
-Fetch a single post as an LLM-friendly JSON object.
+Fetch a single post as an LLM-friendly JSON object **plus the post's media as image blocks** so the model can actually see attached photos and video thumbnails.
 
 Inputs:
 
@@ -265,6 +265,8 @@ Inputs:
 
 Provide exactly one of `url` or `id`.
 
+Output: a `[JSON, ImageContent...]` block list. The first element is the same payload as before; image bytes for `photo`, `animated_gif`, and `video` (thumbnail) media are downloaded from the X CDN and appended.
+
 Example prompts:
 
 ```text
@@ -272,7 +274,26 @@ Read and analyze this X post: https://x.com/user/status/1234567890
 ```
 
 ```text
-Fetch post ID 1234567890 and summarize the author's claim.
+Fetch post ID 1234567890 and describe what's in the image.
+```
+
+### `x_get_article`
+
+Fetch an X long-form article and its embedded images. Articles are the editor-style posts behind URLs like `https://x.com/i/article/<id>` and are *not* visible to `x_get_post` (which only sees post-level media). The tool accepts either the article URL, the article ID, or the parent tweet's URL/ID.
+
+Inputs:
+
+- `url`: article URL or parent tweet URL
+- `id`: article ID or parent tweet ID
+
+Provide exactly one of `url` or `id`.
+
+Output: a `[JSON, ImageContent...]` block list. The JSON contains the article's title, plain-text body, preview text, author, cover media, and an inline media list. Cover image and every inline image are downloaded and appended as image blocks.
+
+Example prompts:
+
+```text
+Summarise this X article and explain the diagrams: https://x.com/i/article/2052796100608974848
 ```
 
 ### `x_get_bookmarks`

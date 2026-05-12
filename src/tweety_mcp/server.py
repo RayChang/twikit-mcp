@@ -7,7 +7,19 @@ from typing import Any, Callable
 
 from tweety_mcp.client_factory import TwikitClientFactory
 from tweety_mcp.config import load_runtime_config
-from tweety_mcp.service import BookmarkService, PostService, SearchService
+from tweety_mcp.media_fetcher import fetch_images
+from tweety_mcp.service import ArticleService, BookmarkService, PostService, SearchService
+
+
+_IMAGE_MEDIA_TYPES = {"photo", "image", "animated_gif", "video"}
+
+
+def _media_image_urls(media: list[dict]) -> list[str]:
+    return [
+        item["url"]
+        for item in media
+        if item.get("type") in _IMAGE_MEDIA_TYPES and item.get("url")
+    ]
 
 
 @dataclass(slots=True)
@@ -30,7 +42,14 @@ class MCPStub:
         return decorator
 
 
-def build_mcp(*, mcp_factory=None, search_service=None, post_service=None, bookmark_service=None):
+def build_mcp(
+    *,
+    mcp_factory=None,
+    search_service=None,
+    post_service=None,
+    bookmark_service=None,
+    article_service=None,
+):
     """Build and return the MCP server."""
     factory = mcp_factory or _default_mcp_factory
     mcp = factory("tweety-mcp")
@@ -65,7 +84,24 @@ def build_mcp(*, mcp_factory=None, search_service=None, post_service=None, bookm
         @mcp.tool()
         async def x_get_post(url: str | None = None, id: str | None = None):
             result = await post_service.get_post(url=url, id=id)
-            return result.model_dump()
+            data = result.model_dump()
+            images = await fetch_images(_media_image_urls(data.get("media", [])))
+            return [data, *images]
+
+    if article_service is not None:
+
+        @mcp.tool()
+        async def x_get_article(url: str | None = None, id: str | None = None):
+            result = await article_service.get_article(url=url, id=id)
+            data = result.model_dump()
+            urls: list[str] = []
+            if data.get("cover_media"):
+                cover_url = data["cover_media"].get("url")
+                if cover_url:
+                    urls.append(cover_url)
+            urls.extend(_media_image_urls(data.get("media", [])))
+            images = await fetch_images(urls)
+            return [data, *images]
 
     if bookmark_service is not None:
 
@@ -101,6 +137,7 @@ def main() -> None:
         search_service=SearchService(client=client),
         post_service=PostService(client=client),
         bookmark_service=BookmarkService(client=client, authenticated=config.mode == "cookie-auth"),
+        article_service=ArticleService(client=client),
     )
     mcp.run()
 
