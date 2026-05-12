@@ -33,7 +33,7 @@ def test_pyproject_declares_runtime_dependencies():
 
     assert any(dependency.startswith("pydantic") for dependency in dependencies)
     assert any(dependency.startswith("mcp") for dependency in dependencies)
-    assert any(dependency.startswith("twikit") for dependency in dependencies)
+    assert any(dependency.startswith("tweety-ns") for dependency in dependencies)
 
 
 def test_search_post_summary_normalizes_offset_to_utc():

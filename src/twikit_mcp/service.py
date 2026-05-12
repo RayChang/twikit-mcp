@@ -225,40 +225,56 @@ class _BookmarkFilters:
 
 
 def map_tweet_to_search_summary(tweet: Any) -> SearchPostSummary:
-    """Map a twikit tweet-like object into a listing-friendly schema."""
-    author = _map_author(_get_required(tweet, "user"))
+    """Map a tweet-like object (twikit or tweety) into a listing-friendly schema."""
+    author = _map_author(_get_required_one_of(tweet, ("user", "author")))
     tweet_id = str(_get_required(tweet, "id"))
+
+    is_reply = _coerce_bool(
+        _get_optional(tweet, "is_reply"),
+        _get_optional(tweet, "in_reply_to_status_id") is not None,
+    )
+    is_quote = _coerce_bool(
+        _get_optional(tweet, "is_quoted"),
+        _get_optional(tweet, "quote") is not None
+        or _get_optional(tweet, "quoted_tweet") is not None,
+    )
+    is_retweet = _coerce_bool(
+        _get_optional(tweet, "is_retweet"),
+        _get_optional(tweet, "retweeted_tweet") is not None,
+    )
 
     return SearchPostSummary(
         id=tweet_id,
         url=f"https://x.com/{author.handle}/status/{tweet_id}",
-        text=str(_get_required(tweet, "text")),
-        created_at=_get_required(tweet, "created_at"),
-        lang=str(_get_optional(tweet, "lang", "")),
-        favorite_count=_get_count(tweet, "favorite_count"),
-        retweet_count=_get_count(tweet, "retweet_count"),
-        reply_count=_get_count(tweet, "reply_count"),
-        quote_count=_get_count(tweet, "quote_count"),
+        text=str(_get_required_one_of(tweet, ("text", "tweet_body"))),
+        created_at=_get_required_one_of(tweet, ("created_at", "created_on", "date")),
+        lang=str(_get_optional_one_of(tweet, ("lang", "language"), "")),
+        favorite_count=_get_count_one_of(tweet, ("favorite_count", "likes")),
+        retweet_count=_get_count_one_of(tweet, ("retweet_count", "retweet_counts")),
+        reply_count=_get_count_one_of(tweet, ("reply_count", "reply_counts")),
+        quote_count=_get_count_one_of(tweet, ("quote_count", "quote_counts")),
         has_media=bool(_get_optional(tweet, "media", [])),
-        is_reply=_get_optional(tweet, "in_reply_to_status_id") is not None,
-        is_quote=_get_optional(tweet, "quote") is not None or _get_optional(tweet, "quoted_tweet") is not None,
-        is_retweet=_get_optional(tweet, "retweeted_tweet") is not None,
+        is_reply=is_reply,
+        is_quote=is_quote,
+        is_retweet=is_retweet,
         author=author,
     )
 
 
 def map_tweet_to_full_post(tweet: Any) -> FullPostPayload:
-    """Map a twikit tweet-like object into a full LLM analysis schema."""
+    """Map a tweet-like object (twikit or tweety) into a full LLM analysis schema."""
     summary = map_tweet_to_search_summary(tweet)
     quoted_tweet = _get_optional(tweet, "quote") or _get_optional(tweet, "quoted_tweet")
     retweeted_tweet = _get_optional(tweet, "retweeted_tweet")
 
     return FullPostPayload(
         **summary.model_dump(),
-        view_count=_get_optional(tweet, "view_count"),
+        view_count=_get_optional_one_of(tweet, ("view_count", "views")),
         hashtags=list(_iter_string_values(_get_optional(tweet, "hashtags", []))),
-        urls=list(_iter_string_values(_get_optional(tweet, "urls", []))),
-        mentions=list(_iter_string_values(_get_optional(tweet, "mentions", []))),
+        urls=list(_iter_url_strings(_get_optional(tweet, "urls", []))),
+        mentions=list(_iter_string_values(
+            _get_optional_one_of(tweet, ("mentions", "user_mentions"), [])
+        )),
         media=[_map_media_item(item) for item in _get_optional(tweet, "media", [])],
         in_reply_to_status_id=_optional_string(_get_optional(tweet, "in_reply_to_status_id")),
         in_reply_to_user_handle=_map_reply_user_handle(_get_optional(tweet, "in_reply_to_user")),
@@ -299,7 +315,13 @@ def _map_author(user: Any) -> Author:
 def _map_media_item(media: Any) -> MediaItem:
     return MediaItem(
         type=str(_get_optional(media, "type", "")),
-        url=str(_get_optional(media, "url") or _get_optional(media, "media_url", "")),
+        url=str(
+            _get_optional(media, "url")
+            or _get_optional(media, "media_url")
+            or _get_optional(media, "media_url_https")
+            or _get_optional(media, "direct_url")
+            or ""
+        ),
         alt_text=_optional_string(_get_optional(media, "alt_text")),
     )
 
@@ -315,9 +337,29 @@ def _iter_string_values(values: Iterable[Any]) -> Iterable[str]:
         if isinstance(value, str):
             yield value
         else:
-            text = _get_optional(value, "text") or _get_optional(value, "url") or _get_optional(value, "screen_name")
+            text = (
+                _get_optional(value, "text")
+                or _get_optional(value, "screen_name")
+                or _get_optional(value, "username")
+                or _get_optional(value, "url")
+            )
             if text is not None:
                 yield str(text)
+
+
+def _iter_url_strings(values: Iterable[Any]) -> Iterable[str]:
+    """Yield canonical URLs preferring expanded forms when available."""
+    for value in values:
+        if isinstance(value, str):
+            yield value
+            continue
+        text = (
+            _get_optional(value, "expanded_url")
+            or _get_optional(value, "url")
+            or _get_optional(value, "display_url")
+        )
+        if text is not None:
+            yield str(text)
 
 
 def _get_required(obj: Any, name: str) -> Any:
@@ -327,15 +369,45 @@ def _get_required(obj: Any, name: str) -> Any:
     return value
 
 
+def _get_required_one_of(obj: Any, names: tuple[str, ...]) -> Any:
+    for name in names:
+        value = _get_optional(obj, name)
+        if value is not None:
+            return value
+    raise ValueError(f"tweet is missing required field: any of {names}")
+
+
 def _get_optional(obj: Any, name: str, default: Any = None) -> Any:
     if isinstance(obj, dict):
         return obj.get(name, default)
     return getattr(obj, name, default)
 
 
+def _get_optional_one_of(obj: Any, names: tuple[str, ...], default: Any = None) -> Any:
+    for name in names:
+        value = _get_optional(obj, name)
+        if value is not None:
+            return value
+    return default
+
+
 def _get_count(obj: Any, name: str) -> int:
     value = _get_optional(obj, name, 0)
     return int(value or 0)
+
+
+def _get_count_one_of(obj: Any, names: tuple[str, ...]) -> int:
+    for name in names:
+        value = _get_optional(obj, name)
+        if value is not None:
+            return int(value or 0)
+    return 0
+
+
+def _coerce_bool(primary: Any, fallback: bool) -> bool:
+    if primary is None:
+        return fallback
+    return bool(primary)
 
 
 def _optional_string(value: Any) -> str | None:
