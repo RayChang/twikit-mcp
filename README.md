@@ -18,25 +18,30 @@ It does not post, like, retweet, follow, send DMs, or store X passwords.
 
 ## Install
 
-From this repository:
+Install directly from GitHub:
 
 ```bash
-cd ~/Workspace/twikit-mcp
-python -m pip install -e .
+python -m pip install "git+https://github.com/RayChang/twikit-mcp.git"
 ```
 
 Recommended user-level install:
 
 ```bash
-cd ~/Workspace/twikit-mcp
-pipx install .
+pipx install "git+https://github.com/RayChang/twikit-mcp.git"
 ```
 
 Alternative with `uv`:
 
 ```bash
-cd ~/Workspace/twikit-mcp
-uv tool install .
+uv tool install "git+https://github.com/RayChang/twikit-mcp.git"
+```
+
+For a local checkout:
+
+```bash
+git clone https://github.com/RayChang/twikit-mcp.git
+cd twikit-mcp
+python -m pip install -e .
 ```
 
 Verify that the command is available:
@@ -285,7 +290,8 @@ Find my bookmarked posts from @sama about OpenAI.
 Set up local development:
 
 ```bash
-cd ~/Workspace/twikit-mcp
+git clone https://github.com/RayChang/twikit-mcp.git
+cd twikit-mcp
 python -m venv .venv
 .venv/bin/pip install -e .
 ```
