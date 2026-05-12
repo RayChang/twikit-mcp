@@ -1,4 +1,4 @@
-"""Structured error payloads for twikit-mcp."""
+"""Structured error payloads for tweety-mcp."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ErrorCode(str, Enum):
-    """Stable error codes returned by twikit-mcp."""
+    """Stable error codes returned by tweety-mcp."""
 
     AUTH_REQUIRED = "AUTH_REQUIRED"
     AUTH_EXPIRED = "AUTH_EXPIRED"

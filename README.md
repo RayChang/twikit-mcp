@@ -1,6 +1,6 @@
-# twikit-mcp
+# tweety-mcp
 
-Local single-user MCP server for querying X posts and authenticated bookmarks through [`twikit`](https://github.com/d60/twikit).
+Local single-user MCP server for querying X posts and authenticated bookmarks through [`tweety-ns`](https://github.com/mahrtayyab/tweety).
 
 This server is designed for local agent workflows. It exposes read-only tools over MCP `stdio`:
 
@@ -22,64 +22,57 @@ It does not post, like, retweet, follow, send DMs, or store X passwords.
 Recommended for MCP hosts:
 
 ```bash
-uvx --from "git+https://github.com/RayChang/twikit-mcp.git" twikit-mcp
+uvx --from "git+https://github.com/RayChang/tweety-mcp.git" tweety-mcp
 ```
 
-This does not install a persistent `twikit-mcp` command. `uvx` downloads/builds the package on first run, stores it in uv's cache, and runs the MCP stdio server.
+This does not install a persistent `tweety-mcp` command. `uvx` downloads/builds the package on first run, stores it in uv's cache, and runs the MCP stdio server.
 
-`twikit-mcp` is an MCP stdio server, so running it directly will wait for MCP JSON-RPC messages on stdin. Use it through an MCP host rather than as an interactive CLI.
+`tweety-mcp` is an MCP stdio server, so running it directly will wait for MCP JSON-RPC messages on stdin. Use it through an MCP host rather than as an interactive CLI.
 
 ## Optional Persistent Install
 
 If you prefer a persistent local command:
 
 ```bash
-pipx install "git+https://github.com/RayChang/twikit-mcp.git"
+pipx install "git+https://github.com/RayChang/tweety-mcp.git"
 ```
 
 Or with `uv`:
 
 ```bash
-uv tool install "git+https://github.com/RayChang/twikit-mcp.git"
+uv tool install "git+https://github.com/RayChang/tweety-mcp.git"
 ```
 
 Or with `pip`:
 
 ```bash
-python -m pip install "git+https://github.com/RayChang/twikit-mcp.git"
+python -m pip install "git+https://github.com/RayChang/tweety-mcp.git"
 ```
 
 For local development from a checkout:
 
 ```bash
-git clone https://github.com/RayChang/twikit-mcp.git
-cd twikit-mcp
+git clone https://github.com/RayChang/tweety-mcp.git
+cd tweety-mcp
 python -m pip install -e .
 ```
 
 If you use a persistent install, verify that the command is available:
 
 ```bash
-which twikit-mcp
+which tweety-mcp
 ```
 
 ## Authentication
 
-The server starts in guest mode when no cookies are configured. Guest mode can use:
-
-- `x_search_posts`
-- `x_get_post`
-
-Bookmark access requires cookie-auth mode:
-
-- `x_get_bookmarks`
+All three tools currently require cookie-auth mode. `tweety-ns` decorates `search`, `get_bookmarks`, and similar endpoints as `@AuthRequired`, and X is increasingly hostile to unauthenticated access. Guest mode is accepted by the config layer but most endpoints will reject the request.
 
 The server only reads `auth_token` and `ct0`. It does not ask for your X username, password, or 2FA code.
 
 Create:
 
 ```text
-~/.config/twikit-mcp/cookies.json
+~/.config/tweety-mcp/cookies.json
 ```
 
 With:
@@ -91,42 +84,46 @@ With:
 }
 ```
 
+`chmod 600` the file so other users on the machine cannot read it.
+
 Environment variables override the file:
 
 ```bash
-export TWIKIT_MCP_AUTH_TOKEN="..."
-export TWIKIT_MCP_CT0="..."
+export TWEETY_MCP_AUTH_TOKEN="..."
+export TWEETY_MCP_CT0="..."
 ```
 
-If cookies expire, grab fresh `auth_token` and `ct0` from your browser DevTools and update the file or environment variables.
+The file approach is preferred because env vars registered with `claude mcp add -e ...` end up in `~/.claude.json` in plaintext.
+
+If cookies expire, grab fresh `auth_token` and `ct0` from your browser DevTools (`Application → Storage → Cookies → https://x.com`) and update the file. No server restart is needed — values are re-read on each tool invocation.
 
 ## Agent CLI Setup
 
-The examples below use `uvx`, so users do not need to install `twikit-mcp` first. If you use a persistent install instead, set `command` to `twikit-mcp` and set `args` to `[]`.
+The examples below use `uvx`, so users do not need to install `tweety-mcp` first. If you use a persistent install instead, set `command` to `tweety-mcp` and set `args` to `[]`.
 
 ### Codex CLI
 
 Codex can run the server from `~/.codex/config.toml`:
 
 ```toml
-[mcp_servers.twikit-mcp]
+[mcp_servers.tweety-mcp]
 command = "uvx"
-args = ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"]
+args = ["--from", "git+https://github.com/RayChang/tweety-mcp.git", "tweety-mcp"]
 ```
 
 With cookie environment variables:
 
 ```toml
-[mcp_servers.twikit-mcp]
+[mcp_servers.tweety-mcp]
 command = "uvx"
-args = ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"]
-env = { TWIKIT_MCP_AUTH_TOKEN = "...", TWIKIT_MCP_CT0 = "..." }
+args = ["--from", "git+https://github.com/RayChang/tweety-mcp.git", "tweety-mcp"]
+env = { TWEETY_MCP_AUTH_TOKEN = "...", TWEETY_MCP_CT0 = "..." }
 ```
 
 If your Codex CLI accepts full command strings, this command-line registration is also possible:
 
 ```bash
-codex mcp add twikit-mcp --transport stdio --command "uvx --from git+https://github.com/RayChang/twikit-mcp.git twikit-mcp"
+codex mcp add tweety-mcp --transport stdio --command "uvx --from git+https://github.com/RayChang/tweety-mcp.git tweety-mcp"
 ```
 
 Check registration:
@@ -138,7 +135,7 @@ codex mcp list
 Remove it:
 
 ```bash
-codex mcp remove twikit-mcp
+codex mcp remove tweety-mcp
 ```
 
 ### Claude Code
@@ -147,23 +144,23 @@ Add a local stdio MCP server entry. For project-local configuration, create or e
 
 ```json
 {
-  "twikit-mcp": {
+  "tweety-mcp": {
     "command": "uvx",
-    "args": ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"]
+    "args": ["--from", "git+https://github.com/RayChang/tweety-mcp.git", "tweety-mcp"]
   }
 }
 ```
 
-If you prefer environment variables instead of `~/.config/twikit-mcp/cookies.json`:
+If you prefer environment variables instead of `~/.config/tweety-mcp/cookies.json`:
 
 ```json
 {
-  "twikit-mcp": {
+  "tweety-mcp": {
     "command": "uvx",
-    "args": ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"],
+    "args": ["--from", "git+https://github.com/RayChang/tweety-mcp.git", "tweety-mcp"],
     "env": {
-      "TWIKIT_MCP_AUTH_TOKEN": "${TWIKIT_MCP_AUTH_TOKEN}",
-      "TWIKIT_MCP_CT0": "${TWIKIT_MCP_CT0}"
+      "TWEETY_MCP_AUTH_TOKEN": "${TWEETY_MCP_AUTH_TOKEN}",
+      "TWEETY_MCP_CT0": "${TWEETY_MCP_CT0}"
     }
   }
 }
@@ -176,7 +173,7 @@ Restart Claude Code after changing MCP config.
 Gemini CLI supports adding a local stdio MCP server from the command line:
 
 ```bash
-gemini mcp add twikit-mcp uvx --from "git+https://github.com/RayChang/twikit-mcp.git" twikit-mcp
+gemini mcp add tweety-mcp uvx --from "git+https://github.com/RayChang/tweety-mcp.git" tweety-mcp
 ```
 
 Or configure it in Gemini CLI `settings.json`:
@@ -184,9 +181,9 @@ Or configure it in Gemini CLI `settings.json`:
 ```json
 {
   "mcpServers": {
-    "twikit-mcp": {
+    "tweety-mcp": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"],
+      "args": ["--from", "git+https://github.com/RayChang/tweety-mcp.git", "tweety-mcp"],
       "timeout": 30000,
       "trust": false
     }
@@ -199,12 +196,12 @@ With cookie environment variables:
 ```json
 {
   "mcpServers": {
-    "twikit-mcp": {
+    "tweety-mcp": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"],
+      "args": ["--from", "git+https://github.com/RayChang/tweety-mcp.git", "tweety-mcp"],
       "env": {
-        "TWIKIT_MCP_AUTH_TOKEN": "$TWIKIT_MCP_AUTH_TOKEN",
-        "TWIKIT_MCP_CT0": "$TWIKIT_MCP_CT0"
+        "TWEETY_MCP_AUTH_TOKEN": "$TWEETY_MCP_AUTH_TOKEN",
+        "TWEETY_MCP_CT0": "$TWEETY_MCP_CT0"
       },
       "timeout": 30000,
       "trust": false
@@ -220,9 +217,9 @@ For MCP hosts that accept an `mcpServers` JSON block:
 ```json
 {
   "mcpServers": {
-    "twikit-mcp": {
+    "tweety-mcp": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"]
+      "args": ["--from", "git+https://github.com/RayChang/tweety-mcp.git", "tweety-mcp"]
     }
   }
 }
@@ -309,17 +306,26 @@ Find my bookmarked posts from @sama about OpenAI.
 - All timestamps returned by schemas are ISO 8601 UTC.
 - Bookmark `since` and `until` filter by the post creation time, not the time the bookmark was added.
 - Filtered bookmark search scans at most five pages per request and may return partial results.
-- Search ranking is delegated to X/twikit. The server does not re-rank "top" results.
+- Search ranking is delegated to X/tweety. The server does not re-rank "top" results.
 - Cursor state is in memory and is lost when the MCP server restarts.
 - Guest mode may fail when X changes public access behavior. Cookie-auth mode is usually more capable but depends on valid browser cookies.
+
+## Upstream Patches
+
+The package ships two runtime monkey-patches in `src/tweety_mcp/_tweety_patch.py` that port unreleased fixes from `tweety-ns` `main` onto the PyPI 2.4.1 release:
+
+- **`ondemand.s.js` regex** — X changed its frontend bundle layout around 2026-03-18, breaking the regex tweety uses to derive the `ClientTransaction` animation key. Tweety PR #288 merged on 2026-03-22 but has not been released. Without this patch every request raises `Couldn't get animation key indices`.
+- **`SearchTimeline` GraphQL endpoint** — X migrated `SearchTimeline` from `GET` to `POST` (with a new `queryId`) around the same time. Tweety issue #292 tracks the migration but no fix is on `main`. Without this patch `x_search_posts` returns `404 Page not Found`.
+
+Both patches are removed automatically once a tweety release that contains the upstream fixes is published — delete `_tweety_patch.py` and drop the import from `src/tweety_mcp/__init__.py`.
 
 ## Development
 
 Set up local development:
 
 ```bash
-git clone https://github.com/RayChang/twikit-mcp.git
-cd twikit-mcp
+git clone https://github.com/RayChang/tweety-mcp.git
+cd tweety-mcp
 python -m venv .venv
 .venv/bin/pip install -e .
 ```
@@ -330,4 +336,4 @@ Run tests:
 .venv/bin/python -m pytest -v
 ```
 
-Current test coverage uses fake twikit clients and does not make live X requests.
+Current test coverage uses fake clients and does not make live X requests.

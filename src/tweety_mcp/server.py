@@ -5,16 +5,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from twikit_mcp.client_factory import TwikitClientFactory
-from twikit_mcp.config import load_runtime_config
-from twikit_mcp.service import BookmarkService, PostService, SearchService
+from tweety_mcp.client_factory import TwikitClientFactory
+from tweety_mcp.config import load_runtime_config
+from tweety_mcp.service import BookmarkService, PostService, SearchService
 
 
 @dataclass(slots=True)
 class MCPStub:
     """Small in-process stand-in used until the real SDK is wired in."""
 
-    name: str = "twikit-mcp"
+    name: str = "tweety-mcp"
     tools: dict[str, Callable[..., Any]] | None = None
 
     def __post_init__(self) -> None:
@@ -33,7 +33,7 @@ class MCPStub:
 def build_mcp(*, mcp_factory=None, search_service=None, post_service=None, bookmark_service=None):
     """Build and return the MCP server."""
     factory = mcp_factory or _default_mcp_factory
-    mcp = factory("twikit-mcp")
+    mcp = factory("tweety-mcp")
 
     if search_service is not None:
 
@@ -109,5 +109,5 @@ def _default_mcp_factory(name: str):
     try:
         from mcp.server.fastmcp import FastMCP
     except ImportError as exc:
-        raise RuntimeError("mcp Python SDK is required to run twikit-mcp") from exc
+        raise RuntimeError("mcp Python SDK is required to run tweety-mcp") from exc
     return FastMCP(name)

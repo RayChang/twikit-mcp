@@ -13,11 +13,11 @@ from __future__ import annotations
 import math
 from typing import Any, Protocol
 
-from twikit_mcp.config import RuntimeConfig
+from tweety_mcp.config import RuntimeConfig
 
 
 DEFAULT_LANGUAGE = "en-US"
-DEFAULT_SESSION_NAME = "twikit-mcp"
+DEFAULT_SESSION_NAME = "tweety-mcp"
 TWEETY_PAGE_SIZE = 20
 
 

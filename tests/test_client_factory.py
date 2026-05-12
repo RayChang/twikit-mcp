@@ -1,4 +1,4 @@
-from twikit_mcp.config import RuntimeConfig
+from tweety_mcp.config import RuntimeConfig
 
 
 class FakeGuestClient:
@@ -16,7 +16,7 @@ class FakeAuthClient:
 
 
 def test_client_factory_builds_guest_client():
-    from twikit_mcp.client_factory import TwikitClientFactory
+    from tweety_mcp.client_factory import TwikitClientFactory
 
     factory = TwikitClientFactory(
         guest_client_class=FakeGuestClient,
@@ -35,7 +35,7 @@ def test_client_factory_builds_guest_client():
 
 
 def test_client_factory_builds_authenticated_client_with_cookies():
-    from twikit_mcp.client_factory import TwikitClientFactory
+    from tweety_mcp.client_factory import TwikitClientFactory
 
     factory = TwikitClientFactory(
         guest_client_class=FakeGuestClient,
@@ -58,7 +58,7 @@ def test_client_factory_builds_authenticated_client_with_cookies():
 def test_client_factory_rejects_auth_config_without_cookies():
     import pytest
 
-    from twikit_mcp.client_factory import ClientFactoryError, TwikitClientFactory
+    from tweety_mcp.client_factory import ClientFactoryError, TwikitClientFactory
 
     factory = TwikitClientFactory(
         guest_client_class=FakeGuestClient,

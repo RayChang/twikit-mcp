@@ -3,7 +3,7 @@ import tomllib
 
 
 def test_search_post_summary_uses_iso_utc_timestamp():
-    from twikit_mcp.models import SearchPostSummary
+    from tweety_mcp.models import SearchPostSummary
 
     item = SearchPostSummary(
         id="1",
@@ -37,7 +37,7 @@ def test_pyproject_declares_runtime_dependencies():
 
 
 def test_search_post_summary_normalizes_offset_to_utc():
-    from twikit_mcp.models import SearchPostSummary
+    from tweety_mcp.models import SearchPostSummary
 
     item = SearchPostSummary(
         id="1",
@@ -60,7 +60,7 @@ def test_search_post_summary_normalizes_offset_to_utc():
 
 
 def test_bookmark_list_response_accepts_bookmark_items():
-    from twikit_mcp.models import BookmarkListResponse
+    from tweety_mcp.models import BookmarkListResponse
 
     response = BookmarkListResponse(
         items=[
@@ -91,7 +91,7 @@ def test_bookmark_list_response_accepts_bookmark_items():
 
 
 def test_rate_limited_error_sets_stable_code_and_retryable_flag():
-    from twikit_mcp.errors import ErrorCode, rate_limited_error
+    from tweety_mcp.errors import ErrorCode, rate_limited_error
 
     error = rate_limited_error(details={"reset_at": "2026-05-11T00:15:00Z"})
 
@@ -101,7 +101,7 @@ def test_rate_limited_error_sets_stable_code_and_retryable_flag():
 
 
 def test_error_code_enum_covers_required_codes():
-    from twikit_mcp.errors import ErrorCode
+    from tweety_mcp.errors import ErrorCode
 
     assert {code.value for code in ErrorCode} == {
         "AUTH_REQUIRED",
@@ -117,7 +117,7 @@ def test_error_code_enum_covers_required_codes():
 
 
 def test_full_post_payload_accepts_media_and_quoted_post():
-    from twikit_mcp.models import FullPostPayload
+    from tweety_mcp.models import FullPostPayload
 
     item = FullPostPayload(
         id="1",

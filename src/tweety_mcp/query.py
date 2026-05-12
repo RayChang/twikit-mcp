@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Literal
 
-from twikit_mcp.normalize import NormalizationError, normalize_author
+from tweety_mcp.normalize import NormalizationError, normalize_author
 
 
 TwikitSearchMode = Literal["Latest", "Top", "Media"]

@@ -6,8 +6,8 @@ from collections.abc import Iterable
 from datetime import date, datetime
 from typing import Any
 
-from twikit_mcp.cache import TTLCache
-from twikit_mcp.errors import (
+from tweety_mcp.cache import TTLCache
+from tweety_mcp.errors import (
     AuthRequiredError,
     ErrorPayload,
     auth_expired_error,
@@ -17,7 +17,7 @@ from twikit_mcp.errors import (
     rate_limited_error,
     upstream_changed_error,
 )
-from twikit_mcp.models import (
+from tweety_mcp.models import (
     Author,
     BookmarkListItem,
     BookmarkListResponse,
@@ -26,8 +26,8 @@ from twikit_mcp.models import (
     SearchPostsResponse,
     SearchPostSummary,
 )
-from twikit_mcp.normalize import NormalizationError, extract_post_id, normalize_author
-from twikit_mcp.query import QueryError, compose_search_query, normalize_sort
+from tweety_mcp.normalize import NormalizationError, extract_post_id, normalize_author
+from tweety_mcp.query import QueryError, compose_search_query, normalize_sort
 
 
 DEFAULT_LIMIT = 20

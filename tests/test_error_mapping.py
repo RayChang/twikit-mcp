@@ -1,6 +1,6 @@
 def test_map_rate_limit_exception_to_error_payload():
-    from twikit_mcp.errors import ErrorCode
-    from twikit_mcp.service import map_exception_to_error
+    from tweety_mcp.errors import ErrorCode
+    from tweety_mcp.service import map_exception_to_error
 
     error = map_exception_to_error(Exception("rate limit exceeded"))
 
@@ -9,8 +9,8 @@ def test_map_rate_limit_exception_to_error_payload():
 
 
 def test_map_auth_exception_to_auth_expired_error_payload():
-    from twikit_mcp.errors import ErrorCode
-    from twikit_mcp.service import map_exception_to_error
+    from tweety_mcp.errors import ErrorCode
+    from tweety_mcp.service import map_exception_to_error
 
     error = map_exception_to_error(Exception("401 unauthorized"))
 
@@ -18,8 +18,8 @@ def test_map_auth_exception_to_auth_expired_error_payload():
 
 
 def test_map_unknown_exception_to_internal_error_payload():
-    from twikit_mcp.errors import ErrorCode
-    from twikit_mcp.service import map_exception_to_error
+    from tweety_mcp.errors import ErrorCode
+    from tweety_mcp.service import map_exception_to_error
 
     error = map_exception_to_error(RuntimeError("unexpected"))
 

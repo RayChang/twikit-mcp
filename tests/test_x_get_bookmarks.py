@@ -45,8 +45,8 @@ class FakeBookmarkClient:
 
 
 def test_x_get_bookmarks_requires_auth():
-    from twikit_mcp.errors import AuthRequiredError
-    from twikit_mcp.service import BookmarkService
+    from tweety_mcp.errors import AuthRequiredError
+    from tweety_mcp.service import BookmarkService
 
     service = BookmarkService(client=FakeBookmarkClient(FakeBookmarkResult([])), authenticated=False)
 
@@ -55,7 +55,7 @@ def test_x_get_bookmarks_requires_auth():
 
 
 def test_x_get_bookmarks_returns_listing_for_authenticated_client():
-    from twikit_mcp.service import BookmarkService
+    from tweety_mcp.service import BookmarkService
 
     client = FakeBookmarkClient(FakeBookmarkResult([make_tweet()], next_cursor="cursor-1"))
     service = BookmarkService(client=client, authenticated=True)
@@ -70,7 +70,7 @@ def test_x_get_bookmarks_returns_listing_for_authenticated_client():
 
 
 def test_x_get_bookmarks_filters_by_query_author_time_and_lang():
-    from twikit_mcp.service import BookmarkService
+    from tweety_mcp.service import BookmarkService
 
     result = FakeBookmarkResult(
         [
@@ -103,7 +103,7 @@ def test_x_get_bookmarks_filters_by_query_author_time_and_lang():
 
 
 def test_x_get_bookmarks_scans_multiple_pages_for_filtered_results():
-    from twikit_mcp.service import BookmarkService
+    from tweety_mcp.service import BookmarkService
 
     second = FakeBookmarkResult([make_tweet("2", "target")], next_cursor="cursor-2")
     first = FakeBookmarkResult([make_tweet("1", "other")], next_cursor="cursor-1", next_result=second)
@@ -116,7 +116,7 @@ def test_x_get_bookmarks_scans_multiple_pages_for_filtered_results():
 
 
 def test_x_get_bookmarks_uses_cursor_to_fetch_next_page():
-    from twikit_mcp.service import BookmarkService
+    from tweety_mcp.service import BookmarkService
 
     second = FakeBookmarkResult([make_tweet("2")], next_cursor="cursor-2")
     first = FakeBookmarkResult([make_tweet("1")], next_cursor="cursor-1", next_result=second)
@@ -130,8 +130,8 @@ def test_x_get_bookmarks_uses_cursor_to_fetch_next_page():
 
 
 def test_build_mcp_registers_x_get_bookmarks_tool():
-    from twikit_mcp.server import MCPStub, build_mcp
-    from twikit_mcp.service import BookmarkService
+    from tweety_mcp.server import MCPStub, build_mcp
+    from tweety_mcp.service import BookmarkService
 
     mcp = build_mcp(
         mcp_factory=lambda name: MCPStub(name=name),

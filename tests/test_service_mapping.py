@@ -23,7 +23,7 @@ def make_tweet(**overrides):
 
 
 def test_map_tweet_to_search_summary():
-    from twikit_mcp.service import map_tweet_to_search_summary
+    from tweety_mcp.service import map_tweet_to_search_summary
 
     result = map_tweet_to_search_summary(make_tweet())
 
@@ -35,7 +35,7 @@ def test_map_tweet_to_search_summary():
 
 
 def test_map_tweet_to_search_summary_detects_shape_flags():
-    from twikit_mcp.service import map_tweet_to_search_summary
+    from tweety_mcp.service import map_tweet_to_search_summary
 
     result = map_tweet_to_search_summary(
         make_tweet(
@@ -55,14 +55,14 @@ def test_map_tweet_to_search_summary_detects_shape_flags():
 def test_map_tweet_to_search_summary_requires_author_handle():
     import pytest
 
-    from twikit_mcp.service import map_tweet_to_search_summary
+    from tweety_mcp.service import map_tweet_to_search_summary
 
     with pytest.raises(ValueError):
         map_tweet_to_search_summary(make_tweet(user=SimpleNamespace(name="Alice")))
 
 
 def test_map_tweet_to_full_post_includes_entities_and_nested_posts():
-    from twikit_mcp.service import map_tweet_to_full_post
+    from tweety_mcp.service import map_tweet_to_full_post
 
     result = map_tweet_to_full_post(
         make_tweet(

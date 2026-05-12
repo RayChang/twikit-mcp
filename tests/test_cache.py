@@ -2,7 +2,7 @@ from datetime import timedelta
 
 
 def test_cache_entry_expires_after_ttl():
-    from twikit_mcp.cache import TTLCache
+    from tweety_mcp.cache import TTLCache
 
     now = [1000.0]
     cache = TTLCache(default_ttl_seconds=1, clock=lambda: now[0])
@@ -16,7 +16,7 @@ def test_cache_entry_expires_after_ttl():
 
 
 def test_cache_supports_custom_ttl():
-    from twikit_mcp.cache import TTLCache
+    from tweety_mcp.cache import TTLCache
 
     now = [1000.0]
     cache = TTLCache(default_ttl_seconds=30, clock=lambda: now[0])
@@ -28,7 +28,7 @@ def test_cache_supports_custom_ttl():
 
 
 def test_cache_can_clear_entries():
-    from twikit_mcp.cache import TTLCache
+    from tweety_mcp.cache import TTLCache
 
     cache = TTLCache(default_ttl_seconds=30)
     cache.set("key", "value")

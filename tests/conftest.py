@@ -1,4 +1,4 @@
-"""Pytest configuration for twikit_mcp tests.
+"""Pytest configuration for tweety_mcp tests.
 
 This project uses a ``src`` layout. Insert ``src`` on ``sys.path`` during
 tests so imports work in a clean checkout without requiring an editable

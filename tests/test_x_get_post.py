@@ -34,7 +34,7 @@ class FakePostClient:
 
 
 def test_x_get_post_accepts_twitter_url():
-    from twikit_mcp.service import PostService
+    from tweety_mcp.service import PostService
 
     client = FakePostClient()
     service = PostService(client=client)
@@ -48,7 +48,7 @@ def test_x_get_post_accepts_twitter_url():
 
 
 def test_x_get_post_accepts_plain_id():
-    from twikit_mcp.service import PostService
+    from tweety_mcp.service import PostService
 
     client = FakePostClient()
     service = PostService(client=client)
@@ -60,8 +60,8 @@ def test_x_get_post_accepts_plain_id():
 
 
 def test_x_get_post_requires_exactly_one_identifier():
-    from twikit_mcp.query import QueryError
-    from twikit_mcp.service import PostService
+    from tweety_mcp.query import QueryError
+    from tweety_mcp.service import PostService
 
     service = PostService(client=FakePostClient())
 
@@ -73,8 +73,8 @@ def test_x_get_post_requires_exactly_one_identifier():
 
 
 def test_build_mcp_registers_x_get_post_tool():
-    from twikit_mcp.server import MCPStub, build_mcp
-    from twikit_mcp.service import PostService
+    from tweety_mcp.server import MCPStub, build_mcp
+    from tweety_mcp.service import PostService
 
     mcp = build_mcp(
         mcp_factory=lambda name: MCPStub(name=name),
@@ -85,8 +85,8 @@ def test_build_mcp_registers_x_get_post_tool():
 
 
 def test_registered_x_get_post_tool_returns_json_dict():
-    from twikit_mcp.server import MCPStub, build_mcp
-    from twikit_mcp.service import PostService
+    from tweety_mcp.server import MCPStub, build_mcp
+    from tweety_mcp.service import PostService
 
     mcp = build_mcp(
         mcp_factory=lambda name: MCPStub(name=name),

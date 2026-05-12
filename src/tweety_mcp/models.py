@@ -1,4 +1,4 @@
-"""Shared Pydantic schemas for twikit-mcp."""
+"""Shared Pydantic schemas for tweety-mcp."""
 
 from __future__ import annotations
 

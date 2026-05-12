@@ -1,4 +1,4 @@
-"""Runtime configuration loading for twikit-mcp."""
+"""Runtime configuration loading for tweety-mcp."""
 
 from __future__ import annotations
 
@@ -10,12 +10,12 @@ from pathlib import Path
 import stat
 from typing import Literal
 
-from twikit_mcp.auth import AuthCookies, validate_auth_cookies
+from tweety_mcp.auth import AuthCookies, validate_auth_cookies
 
 
-AUTH_TOKEN_ENV_VAR = "TWIKIT_MCP_AUTH_TOKEN"
-CT0_ENV_VAR = "TWIKIT_MCP_CT0"
-DEFAULT_CONFIG_DIR = Path.home() / ".config" / "twikit-mcp"
+AUTH_TOKEN_ENV_VAR = "TWEETY_MCP_AUTH_TOKEN"
+CT0_ENV_VAR = "TWEETY_MCP_CT0"
+DEFAULT_CONFIG_DIR = Path.home() / ".config" / "tweety-mcp"
 
 RuntimeMode = Literal["guest", "cookie-auth"]
 

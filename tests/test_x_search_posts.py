@@ -54,7 +54,7 @@ class FakeActivatingSearchClient(FakeSearchClient):
 
 
 def test_x_search_posts_returns_summary_listing():
-    from twikit_mcp.service import SearchService
+    from tweety_mcp.service import SearchService
 
     client = FakeSearchClient()
     service = SearchService(client=client)
@@ -67,7 +67,7 @@ def test_x_search_posts_returns_summary_listing():
 
 
 def test_x_search_posts_activates_guest_client_once():
-    from twikit_mcp.service import SearchService
+    from tweety_mcp.service import SearchService
 
     client = FakeActivatingSearchClient()
     service = SearchService(client=client)
@@ -79,7 +79,7 @@ def test_x_search_posts_activates_guest_client_once():
 
 
 def test_x_search_posts_uses_cursor_to_fetch_next_page():
-    from twikit_mcp.service import SearchService
+    from tweety_mcp.service import SearchService
 
     first = FakeResult(
         [make_tweet("1")],
@@ -98,8 +98,8 @@ def test_x_search_posts_uses_cursor_to_fetch_next_page():
 
 
 def test_x_search_posts_rejects_limit_above_max():
-    from twikit_mcp.service import SearchService
-    from twikit_mcp.query import QueryError
+    from tweety_mcp.service import SearchService
+    from tweety_mcp.query import QueryError
 
     service = SearchService(client=FakeSearchClient())
 
@@ -108,8 +108,8 @@ def test_x_search_posts_rejects_limit_above_max():
 
 
 def test_x_search_posts_rejects_unknown_cursor():
-    from twikit_mcp.service import SearchService
-    from twikit_mcp.query import QueryError
+    from tweety_mcp.service import SearchService
+    from tweety_mcp.query import QueryError
 
     service = SearchService(client=FakeSearchClient())
 
@@ -118,8 +118,8 @@ def test_x_search_posts_rejects_unknown_cursor():
 
 
 def test_build_mcp_registers_x_search_posts_tool():
-    from twikit_mcp.server import MCPStub, build_mcp
-    from twikit_mcp.service import SearchService
+    from tweety_mcp.server import MCPStub, build_mcp
+    from tweety_mcp.service import SearchService
 
     mcp = build_mcp(
         mcp_factory=lambda name: MCPStub(name=name),
@@ -130,8 +130,8 @@ def test_build_mcp_registers_x_search_posts_tool():
 
 
 def test_registered_x_search_posts_tool_returns_json_dict():
-    from twikit_mcp.server import MCPStub, build_mcp
-    from twikit_mcp.service import SearchService
+    from tweety_mcp.server import MCPStub, build_mcp
+    from tweety_mcp.service import SearchService
 
     mcp = build_mcp(
         mcp_factory=lambda name: MCPStub(name=name),
