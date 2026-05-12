@@ -13,30 +13,43 @@ It does not post, like, retweet, follow, send DMs, or store X passwords.
 ## Requirements
 
 - Python 3.11+
+- [`uv`](https://docs.astral.sh/uv/) for no-install `uvx` usage
 - A local MCP host that supports `stdio`
 - Optional: X browser cookies `auth_token` and `ct0` for bookmark access
 
-## Install
+## Run Without Installing
 
-Install directly from GitHub:
+Recommended for MCP hosts:
 
 ```bash
-python -m pip install "git+https://github.com/RayChang/twikit-mcp.git"
+uvx --from "git+https://github.com/RayChang/twikit-mcp.git" twikit-mcp
 ```
 
-Recommended user-level install:
+This does not install a persistent `twikit-mcp` command. `uvx` downloads/builds the package on first run, stores it in uv's cache, and runs the MCP stdio server.
+
+`twikit-mcp` is an MCP stdio server, so running it directly will wait for MCP JSON-RPC messages on stdin. Use it through an MCP host rather than as an interactive CLI.
+
+## Optional Persistent Install
+
+If you prefer a persistent local command:
 
 ```bash
 pipx install "git+https://github.com/RayChang/twikit-mcp.git"
 ```
 
-Alternative with `uv`:
+Or with `uv`:
 
 ```bash
 uv tool install "git+https://github.com/RayChang/twikit-mcp.git"
 ```
 
-For a local checkout:
+Or with `pip`:
+
+```bash
+python -m pip install "git+https://github.com/RayChang/twikit-mcp.git"
+```
+
+For local development from a checkout:
 
 ```bash
 git clone https://github.com/RayChang/twikit-mcp.git
@@ -44,13 +57,11 @@ cd twikit-mcp
 python -m pip install -e .
 ```
 
-Verify that the command is available:
+If you use a persistent install, verify that the command is available:
 
 ```bash
 which twikit-mcp
 ```
-
-`twikit-mcp` is an MCP stdio server, so running it directly will wait for MCP JSON-RPC messages on stdin. Use it through an MCP host rather than as an interactive CLI.
 
 ## Authentication
 
@@ -91,14 +102,31 @@ If cookies expire, grab fresh `auth_token` and `ct0` from your browser DevTools 
 
 ## Agent CLI Setup
 
-Use the `twikit-mcp` executable installed above. If your MCP host cannot find it, replace `twikit-mcp` with the absolute path from `which twikit-mcp`.
+The examples below use `uvx`, so users do not need to install `twikit-mcp` first. If you use a persistent install instead, set `command` to `twikit-mcp` and set `args` to `[]`.
 
 ### Codex CLI
 
-Codex CLI can add local stdio MCP servers with `codex mcp add`:
+Codex can run the server from `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.twikit-mcp]
+command = "uvx"
+args = ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"]
+```
+
+With cookie environment variables:
+
+```toml
+[mcp_servers.twikit-mcp]
+command = "uvx"
+args = ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"]
+env = { TWIKIT_MCP_AUTH_TOKEN = "...", TWIKIT_MCP_CT0 = "..." }
+```
+
+If your Codex CLI accepts full command strings, this command-line registration is also possible:
 
 ```bash
-codex mcp add twikit-mcp --transport stdio --command "twikit-mcp"
+codex mcp add twikit-mcp --transport stdio --command "uvx --from git+https://github.com/RayChang/twikit-mcp.git twikit-mcp"
 ```
 
 Check registration:
@@ -120,8 +148,8 @@ Add a local stdio MCP server entry. For project-local configuration, create or e
 ```json
 {
   "twikit-mcp": {
-    "command": "twikit-mcp",
-    "args": []
+    "command": "uvx",
+    "args": ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"]
   }
 }
 ```
@@ -131,8 +159,8 @@ If you prefer environment variables instead of `~/.config/twikit-mcp/cookies.jso
 ```json
 {
   "twikit-mcp": {
-    "command": "twikit-mcp",
-    "args": [],
+    "command": "uvx",
+    "args": ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"],
     "env": {
       "TWIKIT_MCP_AUTH_TOKEN": "${TWIKIT_MCP_AUTH_TOKEN}",
       "TWIKIT_MCP_CT0": "${TWIKIT_MCP_CT0}"
@@ -148,7 +176,7 @@ Restart Claude Code after changing MCP config.
 Gemini CLI supports adding a local stdio MCP server from the command line:
 
 ```bash
-gemini mcp add twikit-mcp twikit-mcp
+gemini mcp add twikit-mcp uvx --from "git+https://github.com/RayChang/twikit-mcp.git" twikit-mcp
 ```
 
 Or configure it in Gemini CLI `settings.json`:
@@ -157,8 +185,8 @@ Or configure it in Gemini CLI `settings.json`:
 {
   "mcpServers": {
     "twikit-mcp": {
-      "command": "twikit-mcp",
-      "args": [],
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"],
       "timeout": 30000,
       "trust": false
     }
@@ -172,8 +200,8 @@ With cookie environment variables:
 {
   "mcpServers": {
     "twikit-mcp": {
-      "command": "twikit-mcp",
-      "args": [],
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"],
       "env": {
         "TWIKIT_MCP_AUTH_TOKEN": "$TWIKIT_MCP_AUTH_TOKEN",
         "TWIKIT_MCP_CT0": "$TWIKIT_MCP_CT0"
@@ -193,8 +221,8 @@ For MCP hosts that accept an `mcpServers` JSON block:
 {
   "mcpServers": {
     "twikit-mcp": {
-      "command": "twikit-mcp",
-      "args": []
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/RayChang/twikit-mcp.git", "twikit-mcp"]
     }
   }
 }
